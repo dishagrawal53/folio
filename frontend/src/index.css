@@ -1,0 +1,321 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── THEMES ──────────────────────────────────────────────── */
+
+:root,
+[data-theme="parchment"] {
+  --bg:           #f7f3ec;
+  --bg-alt:       #f0ead9;
+  --bg-card:      #fdfaf4;
+  --border:       #ddd5c0;
+  --border-light: #e8e0cc;
+  --ink:          #1e1a14;
+  --ink-2:        #3c3528;
+  --ink-3:        #6e6250;
+  --ink-4:        #a8988a;
+  --accent:       #b5451b;
+  --accent-2:     #d4622f;
+  --accent-bg:    #fdf0ea;
+  --tag-bg:       #ede4d5;
+  --highlight:    #fde68a;
+  --highlight-2:  #fbbf24;
+  --panel-bg:     #1d1a16;
+  --panel-alt:    #252118;
+  --panel-border: #302b24;
+  --panel-ink:    #ede8df;
+  --panel-ink-2:  #8a7f72;
+  --panel-accent: #e8834a;
+  --scrollbar:    #cfc5b3;
+  --shadow:       rgba(30, 20, 10, 0.08);
+  --shadow-lg:    rgba(30, 20, 10, 0.18);
+  --note-yellow:  #fef9c3;
+  --note-blue:    #dbeafe;
+  --note-green:   #dcfce7;
+  --note-pink:    #fce7f3;
+  --ruler-color:  rgba(180, 160, 130, 0.2);
+
+  --font-display: 'Lora', Georgia, serif;
+  --font-body:    'Lora', Georgia, serif;
+  --font-ui:      'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg:           #141210;
+  --bg-alt:       #1a1714;
+  --bg-card:      #1f1c18;
+  --border:       #2e2922;
+  --border-light: #252118;
+  --ink:          #ede8df;
+  --ink-2:        #c8bfb2;
+  --ink-3:        #8a7f72;
+  --ink-4:        #4a4438;
+  --accent:       #e8834a;
+  --accent-2:     #f4a26a;
+  --accent-bg:    #2a1e15;
+  --tag-bg:       #28231c;
+  --highlight:    #3d3200;
+  --highlight-2:  #665400;
+  --panel-bg:     #0e0c0a;
+  --panel-alt:    #131109;
+  --panel-border: #1e1b16;
+  --panel-ink:    #c8bfb2;
+  --panel-ink-2:  #5a5248;
+  --panel-accent: #e8834a;
+  --scrollbar:    #3a342c;
+  --shadow:       rgba(0,0,0,0.3);
+  --shadow-lg:    rgba(0,0,0,0.5);
+  --note-yellow:  #2d2700;
+  --note-blue:    #0e1f3d;
+  --note-green:   #0d2418;
+  --note-pink:    #2e0d1f;
+  --ruler-color:  rgba(100, 90, 70, 0.15);
+
+  color-scheme: dark;
+}
+
+[data-theme="slate"] {
+  --bg:           #f0f4f8;
+  --bg-alt:       #e4eaf0;
+  --bg-card:      #f8fafc;
+  --border:       #c8d4df;
+  --border-light: #d8e4ee;
+  --ink:          #0f1923;
+  --ink-2:        #2d3f52;
+  --ink-3:        #5a7285;
+  --ink-4:        #8fa8b8;
+  --accent:       #1a56db;
+  --accent-2:     #2870f0;
+  --accent-bg:    #eef4ff;
+  --tag-bg:       #dae4f0;
+  --highlight:    #fef3c7;
+  --highlight-2:  #fcd34d;
+  --panel-bg:     #0f1923;
+  --panel-alt:    #141f2e;
+  --panel-border: #1e2d3d;
+  --panel-ink:    #e2eaf4;
+  --panel-ink-2:  #607d8f;
+  --panel-accent: #4d9fff;
+  --scrollbar:    #b8c8d8;
+  --shadow:       rgba(15, 25, 35, 0.08);
+  --shadow-lg:    rgba(15, 25, 35, 0.2);
+  --note-yellow:  #fef9c3;
+  --note-blue:    #dbeafe;
+  --note-green:   #dcfce7;
+  --note-pink:    #fce7f3;
+  --ruler-color:  rgba(100, 140, 170, 0.15);
+
+  color-scheme: light;
+}
+
+[data-theme="sage"] {
+  --bg:           #f2f5f0;
+  --bg-alt:       #e8ede4;
+  --bg-card:      #f8faf6;
+  --border:       #c8d5c0;
+  --border-light: #d8e4d0;
+  --ink:          #141e10;
+  --ink-2:        #2e4228;
+  --ink-3:        #567050;
+  --ink-4:        #8aa885;
+  --accent:       #2d6a4f;
+  --accent-2:     #40916c;
+  --accent-bg:    #eef5ec;
+  --tag-bg:       #dce8d8;
+  --highlight:    #fef3c7;
+  --highlight-2:  #fcd34d;
+  --panel-bg:     #141e10;
+  --panel-alt:    #1a2814;
+  --panel-border: #243020;
+  --panel-ink:    #dce8d4;
+  --panel-ink-2:  #5a7850;
+  --panel-accent: #52b788;
+  --scrollbar:    #b0c8a8;
+  --shadow:       rgba(20, 30, 16, 0.08);
+  --shadow-lg:    rgba(20, 30, 16, 0.2);
+  --note-yellow:  #fef9c3;
+  --note-blue:    #dbeafe;
+  --note-green:   #dcfce7;
+  --note-pink:    #fce7f3;
+  --ruler-color:  rgba(80, 130, 80, 0.15);
+
+  color-scheme: light;
+}
+
+/* ─── GLOBAL ──────────────────────────────────────────────── */
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ─── SCROLLBAR ───────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 10px;
+}
+
+/* ─── SELECTION ───────────────────────────────────────────── */
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ─── ANIMATIONS ──────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pageFlipNext {
+  from { opacity: 0; transform: translateX(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes pageFlipPrev {
+  from { opacity: 0; transform: translateX(-24px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dogEarFold {
+  from { clip-path: polygon(0 0, 100% 0, 100% 0, 100% 0); }
+  to   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+}
+
+@keyframes bounceIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes searchHighlight {
+  0%   { background-color: var(--highlight-2); }
+  100% { background-color: var(--highlight); }
+}
+
+/* ─── UTILITY CLASSES ─────────────────────────────────────── */
+
+.anim-fade-up    { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-fade-in    { animation: fadeIn 0.3s ease both; }
+.anim-slide-left { animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-page-next  { animation: pageFlipNext 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-page-prev  { animation: pageFlipPrev 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-panel      { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-bounce-in  { animation: bounceIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* stagger helpers */
+.delay-1  { animation-delay: 0.05s; }
+.delay-2  { animation-delay: 0.10s; }
+.delay-3  { animation-delay: 0.15s; }
+.delay-4  { animation-delay: 0.20s; }
+.delay-5  { animation-delay: 0.25s; }
+
+/* ─── HIGHLIGHT MARKS ─────────────────────────────────────── */
+
+mark.search-match {
+  background: var(--highlight);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+mark.search-match.active {
+  background: var(--highlight-2);
+  animation: searchHighlight 0.3s ease;
+}
+
+/* ─── TOOLTIP ─────────────────────────────────────────────── */
+
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* ─── NOTEBOOK PAPER LINES (applied via JS) ───────────────── */
+
+.notebook-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(1.85em - 1px),
+    var(--ruler-color) calc(1.85em - 1px),
+    var(--ruler-color) 1.85em
+  );
+}
+
+/* ─── FOCUS ───────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

@@ -1,0 +1,15 @@
+# Node
+frontend/node_modules/
+frontend/package-lock.json
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+
+# Environment files (VERY important)
+backend/.env
+.env
+
+# Optional (common)
+.DS_Store
+Thumbs.db
