@@ -1,4 +1,4 @@
-<img width="1217" height="591" alt="image" src="https://github.com/user-attachments/assets/7e579f29-ad73-4413-a16d-e2140d9ce06b" /># Folio — AI-Powered PDF Study Companion
+># Folio — AI-Powered PDF Study Companion
 
 > **Live Demo:** [https://folio-1-ml39.onrender.com/](https://folio-1-ml39.onrender.com/)
 
