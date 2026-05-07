@@ -1,4 +1,4 @@
-># Folio — AI-Powered PDF Study Companion
+# Folio — AI-Powered PDF Study Companion
 
 > **Live Demo:** [https://folio-1-ml39.onrender.com/](https://folio-1-ml39.onrender.com/)
 
