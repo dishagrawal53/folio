@@ -2,13 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api.js'
 
 /**
- * useWikipedia — improved with Python/Flask NLP keyword extraction.
+ * useWikipedia — canvas-render-aware Wikipedia lookup.
  *
- * Key fix: keywords now come from spaCy NER (or robust rule-based fallback)
- * on the backend, which correctly identifies named entities like "OSI model",
- * "TCP/IP", "Sharbel", etc. — avoiding spurious hits like "Acts of Sharbel"
- * when the user selects a networking paragraph.
+ * Improvements over original:
+ *  1. Much stricter relevance gating (threshold 0.15 not 0.08).
+ *  2. Filters out generic/short keywords before querying.
+ *  3. Tries the longest NLP keyword first (most specific entity).
+ *  4. Uses title-only match as a fast-accept shortcut.
+ *  5. Client fallback avoids calling len() (JS bug fix).
  */
+
+// ── Wikipedia API helpers ────────────────────────────────────────
 
 async function fetchSummary(title, signal) {
   const res = await fetch(
@@ -23,7 +27,9 @@ async function fetchSummary(title, signal) {
 
 async function openSearch(query, signal) {
   const res = await fetch(
-    `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&format=json&origin=*`,
+    `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
+      query
+    )}&limit=3&format=json&origin=*`,
     { signal }
   )
   if (!res.ok) return []
@@ -31,24 +37,46 @@ async function openSearch(query, signal) {
   return titles || []
 }
 
-/**
- * Relevance check: requires overlap between selected text words
- * and the Wikipedia result title + extract.
- * Uses a stricter threshold than before (2 words instead of 1).
- */
+// ── Relevance scoring ────────────────────────────────────────────
+
+const GENERIC_STOP = new Set([
+  'system','model','network','protocol','layer','data','type','process',
+  'function','method','class','object','value','result','output','input',
+  'figure','table','example','section','chapter','page','text','term',
+  'concept','theory','approach','technique','algorithm','structure','design',
+  'analysis','overview','introduction','summary','conclusion','reference',
+])
+
 function scoreRelevance(selectedText, wikiTitle, wikiExtract) {
   const selWords = selectedText
     .toLowerCase()
     .replace(/[^a-z\s]/g, '')
     .split(/\s+/)
-    .filter(w => w.length > 3)
+    .filter(w => w.length > 3 && !GENERIC_STOP.has(w))
+
+  if (selWords.length === 0) return 0
 
   const haystack = (wikiTitle + ' ' + wikiExtract).toLowerCase()
   const matches = selWords.filter(w => haystack.includes(w))
 
-  // Score = proportion of selection words found in wiki result
-  return selWords.length > 0 ? matches.length / selWords.length : 0
+  // Bonus: title directly contains a key word → strong signal
+  const titleLower = wikiTitle.toLowerCase()
+  const titleBonus = selWords.some(w => titleLower.includes(w)) ? 0.25 : 0
+
+  return Math.min(1, matches.length / selWords.length + titleBonus)
 }
+
+// Reject keywords that are too generic to yield useful results
+function isUsefulKeyword(kw) {
+  if (!kw || kw.trim().length < 4) return false
+  const lower = kw.toLowerCase().trim()
+  if (GENERIC_STOP.has(lower)) return false
+  // Skip purely numeric strings
+  if (/^\d+$/.test(lower)) return false
+  return true
+}
+
+// ── Main hook ────────────────────────────────────────────────────
 
 export function useWikipedia(selectedText) {
   const [state, setState] = useState({
@@ -66,11 +94,13 @@ export function useWikipedia(selectedText) {
 
   useEffect(() => {
     if (!selectedText || selectedText.trim().length < 4) {
-      setState({ loading: false, title: '', summary: '', url: '', thumbnail: null, keywords: [], error: null, nlpMethod: '' })
+      setState({
+        loading: false, title: '', summary: '', url: '',
+        thumbnail: null, keywords: [], error: null, nlpMethod: '',
+      })
       return
     }
 
-    // Cancel previous
     if (controllerRef.current) controllerRef.current.abort()
     const controller = new AbortController()
     controllerRef.current = controller
@@ -82,70 +112,73 @@ export function useWikipedia(selectedText) {
       try {
         const trimmed = selectedText.trim()
 
-        // ── Step 1: Get NLP keywords from Flask backend ──────────
+        // ── Step 1: NLP keywords from Flask backend ──────────────
         let keywords = []
         let nlpMethod = 'fallback'
         try {
           const nlpData = await api.nlp.keywords(trimmed)
-          keywords = nlpData.keywords || []
+          keywords = (nlpData.keywords || []).filter(isUsefulKeyword)
           nlpMethod = nlpData.method || 'rule-based'
         } catch {
-          // Backend unavailable — use simple client-side fallback
           keywords = clientFallbackKeywords(trimmed)
           nlpMethod = 'client-fallback'
         }
 
         if (sig.aborted) return
 
-        // ── Step 2: Build query list (NLP-guided, most specific first) ──
+        // ── Step 2: Build ranked query list ─────────────────────
+        // Sort by length descending — longer = more specific entity
+        const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length)
+
+        // Limit raw selection fallback to first meaningful phrase
+        const selectionFallback = trimmed
+          .split(/[.!?;,\n]/)
+          .map(s => s.trim())
+          .filter(s => s.length > 8 && s.length < 80)[0] || trimmed.slice(0, 60)
+
         const queries = [
-          ...keywords,          // NLP picks (entities, noun phrases)
-          trimmed.slice(0, 60), // Raw selection as last resort
+          ...sortedKeywords,
+          selectionFallback,
         ].filter(Boolean).filter((q, i, arr) => arr.indexOf(q) === i)
 
         let best = null
         let bestScore = 0
 
-        for (const query of queries.slice(0, 6)) {
+        for (const query of queries.slice(0, 5)) {
           if (sig.aborted) return
 
-          // Direct lookup
+          // Direct title lookup
           const direct = await fetchSummary(query, sig)
           if (direct) {
             const score = scoreRelevance(trimmed, direct.title, direct.extract)
-            if (score > bestScore) {
-              bestScore = score
-              best = direct
-            }
-            // Accept immediately if very high confidence
-            if (score > 0.4) break
+            if (score > bestScore) { bestScore = score; best = direct }
+            if (score > 0.5) break   // Very confident → stop early
           }
 
-          // OpenSearch
+          if (sig.aborted) return
+
+          // OpenSearch fallback for this query
           const hits = await openSearch(query, sig)
           for (const hit of hits.slice(0, 2)) {
             if (sig.aborted) return
             const candidate = await fetchSummary(hit, sig)
             if (candidate) {
               const score = scoreRelevance(trimmed, candidate.title, candidate.extract)
-              if (score > bestScore) {
-                bestScore = score
-                best = candidate
-              }
-              if (score > 0.4) break
+              if (score > bestScore) { bestScore = score; best = candidate }
+              if (score > 0.5) break
             }
           }
 
-          if (bestScore > 0.4) break
+          if (bestScore > 0.5) break
         }
 
         if (sig.aborted) return
 
-        // Reject if relevance too low (prevents "Acts of Sharbel" type mismatches)
-        if (!best || bestScore < 0.08) {
+        // Strict rejection threshold — prevents off-topic hits
+        if (!best || bestScore < 0.15) {
           setState({
             loading: false,
-            error: 'No closely related Wikipedia article found.',
+            error: 'No closely related Wikipedia article found for this selection.',
             title: '', summary: '', url: '', thumbnail: null,
             keywords,
             nlpMethod,
@@ -157,7 +190,8 @@ export function useWikipedia(selectedText) {
           loading: false,
           title: best.title || '',
           summary: best.extract || '',
-          url: best.content_urls?.desktop?.page ||
+          url:
+            best.content_urls?.desktop?.page ||
             `https://en.wikipedia.org/wiki/${encodeURIComponent(best.title)}`,
           thumbnail: best.thumbnail?.source || null,
           keywords,
@@ -183,47 +217,67 @@ export function useWikipedia(selectedText) {
   return state
 }
 
-/** Minimal client-side keyword extractor when backend is down */
+// ── Client-side fallback keyword extractor ───────────────────────
+
 function clientFallbackKeywords(text) {
   const stopWords = new Set([
     'the','a','an','and','or','in','on','at','to','for','of','with','by',
     'is','are','was','were','this','that','it','they','we','you','he','she',
     'also','such','than','when','which','where','how','what','not','can',
     'into','as','if','so','about','each','other','more','very','just','while',
+    ...Array.from(GENERIC_STOP),
   ])
 
-  // Prefer capitalized multi-word phrases
   const words = text.replace(/[^\w\s'-]/g, ' ').split(/\s+/)
   const properPhrases = []
   let i = 0
-  while (i < len(words) - 1) {
+
+  while (i < words.length) {
     const w = words[i]
-    if (w && w[0] === w[0].toUpperCase() && w[0] !== w[0].toLowerCase() && !stopWords.has(w.toLowerCase()) && w.length > 2) {
+    const firstChar = w[0]
+    if (
+      firstChar &&
+      firstChar === firstChar.toUpperCase() &&
+      firstChar !== firstChar.toLowerCase() &&
+      !stopWords.has(w.toLowerCase()) &&
+      w.length > 2
+    ) {
       const phrase = [w]
       let j = i + 1
-      while (j < words.length && words[j] && words[j][0] === words[j][0].toUpperCase() && !stopWords.has(words[j].toLowerCase())) {
+      while (
+        j < words.length &&
+        words[j] &&
+        words[j][0] === words[j][0].toUpperCase() &&
+        words[j][0] !== words[j][0].toLowerCase() &&
+        !stopWords.has(words[j].toLowerCase())
+      ) {
         phrase.push(words[j])
         j++
       }
-      if (phrase.length >= 2 || phrase[0].length >= 6) properPhrases.push(phrase.join(' '))
+      if (phrase.length >= 2 || phrase[0].length >= 6) {
+        properPhrases.push(phrase.join(' '))
+      }
       i = j
     } else {
       i++
     }
   }
 
-  const contentWords = words.filter(w =>
-    w.length >= 6 && !stopWords.has(w.toLowerCase()) && /^[a-zA-Z]/.test(w)
+  const contentWords = words.filter(
+    w =>
+      w.length >= 7 &&
+      !stopWords.has(w.toLowerCase()) &&
+      /^[a-zA-Z]/.test(w) &&
+      isUsefulKeyword(w)
   )
 
   const seen = new Set()
-  return [...properPhrases, ...contentWords].filter(k => {
-    const lower = k.toLowerCase()
-    if (seen.has(lower)) return false
-    seen.add(lower)
-    return true
-  }).slice(0, 5)
+  return [...properPhrases, ...contentWords]
+    .filter(k => {
+      const lower = k.toLowerCase()
+      if (seen.has(lower)) return false
+      seen.add(lower)
+      return true
+    })
+    .slice(0, 5)
 }
-
-// Fix: JS doesn't have Python's len(), use .length
-function len(arr) { return arr.length }
