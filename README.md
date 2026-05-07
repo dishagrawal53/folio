@@ -65,7 +65,7 @@ frontend/src/
 ## Outputs and Results
 <img width="1217" height="591" alt="image" src="https://github.com/user-attachments/assets/90efbd7d-7dfe-4fb6-8251-b9e939307d11" />
 <p align="center">
-    Login ans Signup
+    Login and Signup
 </p>
 <img width="1366" height="624" alt="image" src="https://github.com/user-attachments/assets/67ac520b-35f6-4046-9197-ad30f3ec643f" />
 <p align="center">
