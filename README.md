@@ -1,130 +1,161 @@
-# Folio 📖
+# Folio — AI-Powered PDF Study Companion
 
-> An AI-powered PDF study companion — read, annotate, and understand documents with built-in AI tools.
+> **Live Demo:** [https://folio-1-ml39.onrender.com/](https://folio-1-ml39.onrender.com/)
 
----
-
-## What is Folio?
-
-Folio is a full-stack web application that transforms any PDF into an interactive study session. Upload a textbook, research paper, or lecture notes — and read it with bookmarks, sticky notes, AI explanations, flashcard generation, and a context-aware chat assistant, all in one place.
-
-Your PDFs never leave your device. All text extraction happens in the browser via pdf.js. Only your bookmarks, notes, and reading progress sync to the backend.
-
----
-
-## Features
-
-| Feature | Description |
-|---|---|
-| 📄 **PDF Reader** | Client-side PDF parsing with layout-preserving text extraction |
-| 🔖 **Bookmarks** | Dog-ear page corners or click to bookmark; assign to folders |
-| 📝 **Notes** | Color-coded sticky notes anchored to any page |
-| 💡 **AI Explain** | GPT-4o-mini explains selected text in plain language |
-| 📋 **Page Summary** | Bullet-point summary of the current page |
-| 🃏 **Flashcards** | Auto-generated Q&A flashcards from selected text |
-| 🤖 **AI Chat** | Conversational assistant with full document + page context |
-| 🌐 **Wikipedia Lookup** | Highlight text → instant Wikipedia article with relevance scoring |
-| 🔍 **Full-text Search** | Search across all pages with match highlighting |
-| 📁 **Folders** | Organize bookmarks into color-coded, icon-labeled folders |
-| 📊 **Reading Progress** | Auto-saves your position and resumes where you left off |
-| 🎨 **Themes** | Parchment, Night, Slate, and Sage reading themes |
-| 🔐 **Auth** | JWT-based login and registration with bcrypt password hashing |
+A full-stack web app that turns any PDF into an interactive study session. Drop in a PDF, get pixel-perfect rendering, AI explanations, flashcards, notes, bookmarks, and a document-aware chat — all with your files staying private on your device.
 
 ---
 
 ## Tech Stack
 
-**Frontend:** React 18, Zustand, Vite, pdf.js (pdfjs-dist), JavaScript ES2022
+**Frontend:** React 18, Zustand, Vite, pdf.js  
+**Backend:** Flask (Python), MongoDB, spaCy NLP  
+**AI:** OpenAI GPT-4o mini via OpenRouter  
+**Auth:** JWT + bcrypt  
+**Deployed on:** Render
 
-**Backend:** Python, Flask, Flask-CORS, PyMongo, PyJWT, bcrypt, python-dotenv
+---
 
-**AI / NLP:** OpenAI GPT-4o-mini (via OpenRouter), spaCy (en_core_web_sm), rule-based NLP fallback
+## Features
 
-**Database:** MongoDB (users, bookmarks, notes, folders, reading_progress, chat_history)
+- 📄 **Pixel-perfect PDF rendering** via pdf.js canvas with selectable text layer
+- 🔍 **Full-text search** across all pages with highlighted matches
+- 🤖 **AI tools** — explain selections, summarize pages, generate flashcards
+- 💬 **AI Chat** — document-aware conversational assistant
+- 🔖 **Bookmarks & Notes** — synced to the cloud per user
+- 📁 **Folder library** — organize PDFs and bookmarks
+- 🌐 **Wikipedia lookup** — highlight text to look it up with relevance scoring
+- 🎨 **4 themes** — Parchment, Night, Slate, Sage
+- 🔐 **Multi-user auth** with per-user data isolation
 
-**External APIs:** Wikipedia REST API, Wikipedia OpenSearch API
+---
+
+## Getting Started
+
+### Backend
+```bash
+cd backend
+pip install flask flask-cors pymongo pyjwt bcrypt python-dotenv openai spacy
+python -m spacy download en_core_web_sm
+# Create .env with MONGO_URI, JWT_SECRET, OPENAI_API_KEY
+python app.py
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+# Create .env with VITE_API_URL=http://localhost:5000
+npm run dev
+```
+
+---
+
+## Privacy
+
+PDF files are processed entirely in the browser using pdf.js — **no file data is ever sent to the server.** Only short text excerpts (for AI) and metadata (bookmarks, notes, progress) are stored in the cloud.
 
 ---
 
 ## Project Structure
 
 ```
-folio/
-├── backend/
-│   └── app.py                  # Flask API — all routes and business logic
-│
-└── frontend/
-    ├── src/
-    │   ├── App.jsx              # Root component, routing between screens
-    │   ├── components/
-    │   │   ├── AuthScreen.jsx   # Login / register UI
-    │   │   ├── UploadScreen.jsx # PDF drag-and-drop landing page
-    │   │   ├── BookReader.jsx   # Main reading view with toolbar
-    │   │   ├── ConceptPanel.jsx # Text selection → Wikipedia + AI panel
-    │   │   ├── AIChatPanel.jsx  # Conversational AI chat sidebar
-    │   │   └── FolderManager.jsx# Folder and bookmark management
-    │   ├── hooks/
-    │   │   ├── usePdfLoader.js  # pdf.js integration, page extraction
-    │   │   ├── useOpenAI.js     # AI tool state management hook
-    │   │   └── useWikipedia.js  # Wikipedia search with relevance scoring
-    │   └── lib/
-    │       ├── api.js           # Centralized Flask API client
-    │       ├── store.js         # Zustand global state (reading, bookmarks, notes)
-    │       └── auth.js          # Zustand auth store with JWT persistence
-    └── index.html
-```
+backend/
+└── app.py               # Flask API — auth, bookmarks, notes, progress, AI
 
+frontend/src/
+├── components/
+│   ├── BookReader.jsx    # Main reading view
+│   ├── ConceptPanel.jsx  # AI tools + Wikipedia panel
+│   ├── AIChatPanel.jsx   # Conversational AI chat
+│   ├── FolderManager.jsx # Library / folder management
+│   ├── AuthScreen.jsx    # Login / Register
+│   └── UploadScreen.jsx  # PDF upload landing page
+├── hooks/
+│   ├── usePdfLoader.js   # pdf.js rendering pipeline
+│   ├── useWikipedia.js   # Wikipedia lookup with NLP
+│   └── useOpenAI.js      # AI action hooks
+└── lib/
+    ├── api.js            # REST client
+    ├── auth.js           # Auth store (Zustand)
+    └── store.js          # Reading store (Zustand)
+```
 
 ---
 
 ## API Overview
 
+All endpoints require a `Bearer <token>` header except auth routes.
+
+### Auth
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login and receive JWT |
+| POST | `/api/auth/register` | Create account → returns JWT |
+| POST | `/api/auth/login` | Login → returns JWT |
 | GET | `/api/auth/me` | Get current user |
-| GET/POST | `/api/bookmarks/:pdf` | List or toggle bookmarks |
-| PUT/DELETE | `/api/bookmarks/:id` | Update or delete bookmark |
-| GET/POST | `/api/notes/:pdf` | List or create notes |
-| PUT/DELETE | `/api/notes/:id` | Update or delete note |
-| GET/POST | `/api/folders` | List or create folders |
-| GET/POST | `/api/progress/:pdf` | Get or save reading progress |
-| GET | `/api/progress/all` | Reading history (last 20 PDFs) |
-| POST | `/api/nlp/keywords` | Extract NLP keywords from text |
-| POST | `/api/ai/explain` | AI explanation of selected text |
-| POST | `/api/ai/summary` | AI page summary |
-| POST | `/api/ai/flashcards` | AI flashcard generation |
-| POST | `/api/ai/chat` | Conversational AI chat |
-| GET | `/api/ai/chat/history/:pdf` | Load chat history for a PDF |
-| GET | `/api/health` | Service health check |
+
+### Folders
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/folders` | List user's folders |
+| POST | `/api/folders` | Create folder |
+| PUT | `/api/folders/<id>` | Update name / color / icon |
+| DELETE | `/api/folders/<id>` | Delete folder |
+
+### Bookmarks
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/bookmarks/<pdf_name>` | Get bookmarks for a PDF |
+| POST | `/api/bookmarks` | Add or toggle a bookmark |
+| PUT | `/api/bookmarks/<id>` | Update label / folder |
+| DELETE | `/api/bookmarks/<id>` | Delete bookmark |
+
+### Notes
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/notes/<pdf_name>` | Get notes for a PDF |
+| POST | `/api/notes` | Create note |
+| PUT | `/api/notes/<id>` | Update note text |
+| DELETE | `/api/notes/<id>` | Delete note |
+
+### Reading Progress
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/progress/<pdf_name>` | Get saved page number |
+| POST | `/api/progress` | Save current page + total |
+| GET | `/api/progress/all` | Reading history (last 20) |
+
+### NLP & AI
+| Method | Endpoint | Body | Description |
+|---|---|---|---|
+| POST | `/api/nlp/keywords` | `{ text }` | Extract keywords via spaCy or rule-based fallback |
+| POST | `/api/ai/explain` | `{ text }` | Explain selected text (GPT-4o mini) |
+| POST | `/api/ai/summary` | `{ text, page }` | Summarize page into bullet points |
+| POST | `/api/ai/flashcards` | `{ text }` | Generate `[{ q, a }]` flashcard JSON |
+| POST | `/api/ai/chat` | `{ pdfName, message, pageContext, history }` | Document-aware chat with history |
+| GET | `/api/ai/chat/history/<pdf_name>` | — | Load saved chat history |
 
 ---
 
 ## How It Works
 
-### PDF Parsing (Client-side)
-The `usePdfLoader` hook dynamically imports `pdfjs-dist` and extracts text from every page using `getTextContent()`. It tracks Y-axis coordinates to insert newlines at paragraph breaks and spaces at column gaps — preserving the original layout structure. The PDF file never leaves the browser.
+### 1. PDF Rendering
+The PDF never leaves the browser. pdf.js renders each page to an off-screen `<canvas>` and exports it as a JPEG image. On top of that image, invisible `<span>` elements are placed at the exact pixel coordinates of every text run — this is what lets you select and copy text from what looks like an image. A third layer renders colored highlight boxes for search matches.
 
-### NLP Pipeline
-When text is selected, a request goes to `/api/nlp/keywords`. Flask uses spaCy Named Entity Recognition (PERSON, ORG, GPE, WORK_OF_ART, etc.) to extract high-quality keywords. If spaCy is unavailable, a rule-based extractor identifies capitalized multi-word phrases and long content words while filtering stop words.
+### 2. Full-Text Search
+During load, plain text is extracted from every page and held in memory. Search runs `String.indexOf()` across all pages client-side — no network call. Matches are mapped back to the invisible text spans for highlighting.
 
-### Wikipedia Relevance Scoring
-Keywords are used to query Wikipedia via direct title lookup and OpenSearch. Each candidate article is scored by how many words from the original selection appear in the article's title and extract. Results below 8% relevance are rejected to prevent off-topic matches.
+### 3. AI Tools
+Selecting text opens the Concept Panel. Clicking Explain / Summary / Flashcards sends a short text excerpt to Flask, which calls GPT-4o mini via OpenRouter and returns the result. Flashcards are returned as a parsed JSON array `[{ q, a }]`. No AI API key is needed in the frontend.
 
-### AI Study Tools
-All AI calls route through Flask to OpenRouter's GPT-4o-mini endpoint. Each tool has a dedicated system prompt:
-- **Explain**: 3-4 sentence plain-language explanation
-- **Summary**: 4-5 bullet points of key ideas from the current page
-- **Flashcards**: JSON array `[{"q":"...","a":"..."}]`, parsed and rendered as an interactive flip-card viewer
+### 4. Wikipedia Lookup
+When you select text, the frontend calls `/api/nlp/keywords` to extract meaningful keywords using spaCy NER. Those keywords are then used to query the Wikipedia REST API directly from the browser. Each result is scored for relevance by checking how many selection words appear in the article — results below 15% relevance are rejected.
 
-### AI Chat
-Each chat message includes the current page's extracted text as context, the PDF filename, and the last 12 messages of conversation history. The AI knows what document you're reading and what page you're on. Chat history is persisted in MongoDB.
+### 5. Auth & Data Isolation
+Login returns a 30-day JWT. Every backend request attaches it as `Authorization: Bearer <token>`. All MongoDB queries are automatically scoped to the logged-in `userId`. On the frontend, Zustand state is persisted to localStorage under a user-scoped key (`folio-storage-{userId}`) so switching accounts always loads a clean slate.
 
-### State Management
-Zustand manages two stores. `useStore` holds all reading state — pages, bookmarks, notes, search, and UI settings. `useAuth` handles JWT authentication. Both use Zustand's `persist` middleware to sync to localStorage. Only serializable data is persisted (not File objects). Changes to bookmarks and notes apply optimistically to local state, then sync to the backend in the background.
+---
 
+## License
 
-- [OpenRouter](https://openrouter.ai/) — Unified AI model API
-- [Wikipedia REST API](https://en.wikipedia.org/api/rest_v1/) — Free encyclopedia data
-- [Zustand](https://github.com/pmndrs/zustand) — Lightweight React state management
+MIT
