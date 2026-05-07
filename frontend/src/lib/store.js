@@ -2,6 +2,24 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '../lib/api.js'
 
+/**
+ * Returns a localStorage key scoped to the currently logged-in user.
+ * Each user gets their own isolated storage bucket so bookmarks, notes,
+ * and reading progress never bleed between accounts.
+ * Falls back to 'folio-storage-guest' when no user is authenticated.
+ */
+function getStorageKey() {
+  try {
+    const raw = localStorage.getItem('folio-auth')
+    if (!raw) return 'folio-storage-guest'
+    const parsed = JSON.parse(raw)
+    const userId = parsed?.state?.user?.id
+    return userId ? `folio-storage-${userId}` : 'folio-storage-guest'
+  } catch {
+    return 'folio-storage-guest'
+  }
+}
+
 export const useStore = create(
   persist(
     (set, get) => ({
@@ -66,7 +84,6 @@ export const useStore = create(
         const { totalPages, currentPage, pdfName } = get()
         const clamped = Math.max(1, Math.min(n, totalPages))
         const direction = clamped >= currentPage ? 'next' : 'prev'
-
         set((state) => ({
           currentPage: clamped,
           pageDirection: direction,
@@ -91,20 +108,14 @@ export const useStore = create(
         const { bookmarks, pdfName } = get()
         const existing = bookmarks.find(b => b.page === page)
 
-        // REMOVE (toggle)
+        // REMOVE (toggle off)
         if (existing) {
           set({ bookmarks: bookmarks.filter(b => b.page !== page) })
-
           try {
-            await api.bookmarks.upsert({
-              pdfName,
-              page,
-              removed: true
-            })
+            await api.bookmarks.upsert({ pdfName, page, removed: true })
           } catch {
             console.warn('Bookmark remove sync failed')
           }
-
           return
         }
 
@@ -117,16 +128,9 @@ export const useStore = create(
           snippet: snippet.slice(0, 120),
           createdAt: Date.now(),
         }
-
-        set({
-          bookmarks: [...bookmarks, bookmark].sort((a, b) => a.page - b.page)
-        })
-
+        set({ bookmarks: [...bookmarks, bookmark].sort((a, b) => a.page - b.page) })
         try {
-          await api.bookmarks.upsert({
-            pdfName,
-            ...bookmark
-          })
+          await api.bookmarks.upsert({ pdfName, ...bookmark })
         } catch {
           console.warn('Bookmark add sync failed')
         }
@@ -135,21 +139,12 @@ export const useStore = create(
       updateBookmarkLabel: async (id, label) => {
         const { bookmarks, pdfName } = get()
         const bookmark = bookmarks.find(b => b.id === id)
-
         set((state) => ({
-          bookmarks: state.bookmarks.map(b =>
-            b.id === id ? { ...b, label } : b
-          )
+          bookmarks: state.bookmarks.map(b => b.id === id ? { ...b, label } : b)
         }))
-
         if (!bookmark) return
-
         try {
-          await api.bookmarks.upsert({
-            pdfName,
-            ...bookmark,
-            label
-          })
+          await api.bookmarks.upsert({ pdfName, ...bookmark, label })
         } catch {
           console.warn('Bookmark update sync failed')
         }
@@ -158,19 +153,12 @@ export const useStore = create(
       removeBookmark: async (id) => {
         const { bookmarks, pdfName } = get()
         const bookmark = bookmarks.find(b => b.id === id)
-
         set((state) => ({
           bookmarks: state.bookmarks.filter(b => b.id !== id)
         }))
-
         if (!bookmark) return
-
         try {
-          await api.bookmarks.upsert({
-            pdfName,
-            page: bookmark.page,
-            removed: true
-          })
+          await api.bookmarks.upsert({ pdfName, page: bookmark.page, removed: true })
         } catch {
           console.warn('Bookmark delete sync failed')
         }
@@ -183,7 +171,6 @@ export const useStore = create(
       // ── Notes (WITH API) ───────────────────────────────────
       addNote: async (page, text, color = 'yellow', selection = '') => {
         const { pdfName } = get()
-
         const note = {
           id: Date.now().toString(),
           page,
@@ -192,18 +179,12 @@ export const useStore = create(
           selection: selection.slice(0, 200),
           createdAt: Date.now(),
         }
-
         set((state) => ({ notes: [...state.notes, note] }))
-
         try {
-          await api.notes.create({
-            pdfName,
-            ...note
-          })
+          await api.notes.create({ pdfName, ...note })
         } catch {
           console.warn('Note sync failed')
         }
-
         return note.id
       },
 
@@ -215,11 +196,9 @@ export const useStore = create(
 
       removeNote: async (id) => {
         const { pdfName } = get()
-
         set((state) => ({
           notes: state.notes.filter(n => n.id !== id)
         }))
-
         try {
           await api.notes.delete({ pdfName, id })
         } catch {
@@ -240,10 +219,8 @@ export const useStore = create(
           set({ searchResults: [], activeSearchResult: 0, searchQuery: query })
           return
         }
-
         const q = query.toLowerCase()
         const results = []
-
         pages.forEach((page) => {
           const text = page.text.toLowerCase()
           let idx = 0
@@ -252,14 +229,12 @@ export const useStore = create(
               page: page.pageNum,
               matchIndex: idx,
               text: page.text.slice(Math.max(0, idx - 40), idx + query.length + 60),
-              query
+              query,
             })
             idx += q.length
           }
         })
-
         set({ searchResults: results, activeSearchResult: 0, searchQuery: query })
-
         if (results.length > 0) {
           get().setCurrentPage(results[0].page)
         }
@@ -301,17 +276,59 @@ export const useStore = create(
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       closeSidebar: () => set({ sidebarOpen: false }),
 
-      // ── Reset ──────────────────────────────────────────────
+      // ── Reset (new file / navigate away) ──────────────────
       reset: () => set({
-        pdfFile: null, pdfName: '', pages: [], totalPages: 0,
-        currentPage: 1, isLoading: false, loadError: null,
-        selectedText: '', selectionRect: null, panelOpen: false,
-        searchQuery: '', searchResults: [], activeSearchResult: 0, searchOpen: false,
+        pdfFile: null,
+        pdfName: '',
+        pages: [],
+        totalPages: 0,
+        currentPage: 1,
+        isLoading: false,
+        loadError: null,
+        selectedText: '',
+        selectionRect: null,
+        panelOpen: false,
+        searchQuery: '',
+        searchResults: [],
+        activeSearchResult: 0,
+        searchOpen: false,
         sidebarOpen: false,
+      }),
+
+      // ── Full wipe (called on logout / login as different user) ─
+      // Resets ALL state including bookmarks, notes, and readingProgress
+      // so no user's data leaks to the next session.
+      wipeUserData: () => set({
+        pdfFile: null,
+        pdfName: '',
+        pages: [],
+        totalPages: 0,
+        currentPage: 1,
+        isLoading: false,
+        loadError: null,
+        selectedText: '',
+        selectionRect: null,
+        panelOpen: false,
+        searchQuery: '',
+        searchResults: [],
+        activeSearchResult: 0,
+        searchOpen: false,
+        sidebarOpen: false,
+        // ↓ User-specific data that must be cleared between accounts
+        bookmarks: [],
+        notes: [],
+        readingProgress: {},
       }),
     }),
     {
-      name: 'folio-storage',
+      // ── User-scoped key ──────────────────────────────────────
+      // Each user ID gets its own localStorage bucket, e.g.:
+      //   folio-storage-abc123   (user abc123's bookmarks/notes/progress)
+      //   folio-storage-xyz789   (user xyz789's bookmarks/notes/progress)
+      // This prevents data from one account ever appearing in another.
+      name: getStorageKey(),
+
+      // Only persist reading preferences and user content — never PDF binary data
       partialize: (state) => ({
         bookmarks: state.bookmarks,
         notes: state.notes,
@@ -321,11 +338,12 @@ export const useStore = create(
         lineHeight: state.lineHeight,
         showRulerLines: state.showRulerLines,
       }),
+
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {
           document.documentElement.setAttribute('data-theme', state.theme)
         }
-      }
+      },
     }
   )
 )

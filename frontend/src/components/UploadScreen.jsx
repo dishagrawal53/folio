@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react'
 import { useStore } from '../lib/store.js'
+import { useAuth } from '../lib/auth.js'
 
 const THEMES = [
   { id: 'parchment', label: 'Parchment', color: '#b5451b' },
@@ -16,6 +17,37 @@ const FEATURES = [
   { icon: '📝', name: 'Inline Notes',          desc: 'Attach colored sticky notes to any page' },
   { icon: '🌐', name: 'Wikipedia Panel',       desc: 'Highlight text to look it up instantly' },
 ]
+
+// ─── User Menu ──────────────────────────────────────────────────
+function UserMenu() {
+  const { user, logout } = useAuth()
+  const [open, setOpen] = useState(false)
+  if (!user) return null
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={s.avatarBtn}
+        title={user.name || user.email}
+      >
+        {user.avatar || user.name?.[0]?.toUpperCase() || '?'}
+      </button>
+      {open && (
+        <div style={s.userDropdown}>
+          <p style={s.userName}>{user.name}</p>
+          <p style={s.userEmail}>{user.email}</p>
+          <div style={s.userDivider} />
+          <button
+            onClick={() => { logout(); setOpen(false) }}
+            style={s.logoutBtn}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function UploadScreen() {
   const setPdf   = useStore(s => s.setPdf)
@@ -64,7 +96,7 @@ export default function UploadScreen() {
         <div key={top} style={{ ...s.holePunch, top }} />
       ))}
 
-      {/* Theme switcher - top right */}
+      {/* Top-right bar: theme switcher + user menu */}
       <div style={{ ...s.themeBar, opacity: mounted ? 1 : 0 }}>
         <span style={s.themeLabel}>Theme</span>
         {THEMES.map(t => (
@@ -82,6 +114,8 @@ export default function UploadScreen() {
             aria-label={t.label}
           />
         ))}
+        <div style={s.themeDivider} />
+        <UserMenu />
       </div>
 
       {/* Main content */}
@@ -233,6 +267,74 @@ const s = {
     cursor: 'pointer',
     transition: 'transform 0.2s',
   },
+  themeDivider: {
+    width: '1px',
+    height: '18px',
+    background: 'var(--border)',
+    marginLeft: '4px',
+    marginRight: '4px',
+  },
+
+  // User menu
+  avatarBtn: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    background: 'var(--accent)',
+    color: 'white',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '12px',
+    fontWeight: '700',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  userDropdown: {
+    position: 'absolute',
+    top: '36px',
+    right: 0,
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    padding: '12px',
+    boxShadow: '0 8px 24px var(--shadow-lg)',
+    minWidth: '180px',
+    zIndex: 200,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  userName: {
+    fontFamily: 'var(--font-ui)',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: 'var(--ink)',
+  },
+  userEmail: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '10px',
+    color: 'var(--ink-4)',
+  },
+  userDivider: {
+    height: '1px',
+    background: 'var(--border)',
+    margin: '6px 0',
+  },
+  logoutBtn: {
+    background: 'none',
+    border: '1px solid var(--border)',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '12px',
+    color: 'var(--ink-3)',
+    padding: '5px 10px',
+    borderRadius: '5px',
+    textAlign: 'left',
+  },
+
   content: {
     display: 'flex',
     flexDirection: 'column',

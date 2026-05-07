@@ -5,14 +5,29 @@ import { useStore } from '../lib/store.js'
 const FOLDER_COLORS = ['#b5451b','#1a56db','#2d6a4f','#7c3aed','#b45309','#be185d','#0f766e','#0369a1']
 const FOLDER_ICONS  = ['📚','📁','🗂','📖','🔬','💡','🧪','📐','🌍','🎓','✏️','🔭']
 
-// ── File store (IndexedDB-backed, per folder) ────────────────────
-// We persist file metadata + base64 in localStorage keyed by folder
+// ── Per-user file store ──────────────────────────────────────────
+// Files are stored in localStorage under a key scoped to the logged-in
+// user ID so that different accounts never share file lists.
+
+function getFilesKey() {
+  try {
+    const raw = localStorage.getItem('folio-auth')
+    if (!raw) return 'folio_folder_files_guest'
+    const parsed = JSON.parse(raw)
+    const userId = parsed?.state?.user?.id
+    return userId ? `folio_folder_files_${userId}` : 'folio_folder_files_guest'
+  } catch {
+    return 'folio_folder_files_guest'
+  }
+}
+
 function getStoredFiles() {
-  try { return JSON.parse(localStorage.getItem('folio_folder_files') || '{}') }
+  try { return JSON.parse(localStorage.getItem(getFilesKey()) || '{}') }
   catch { return {} }
 }
+
 function setStoredFiles(data) {
-  localStorage.setItem('folio_folder_files', JSON.stringify(data))
+  localStorage.setItem(getFilesKey(), JSON.stringify(data))
 }
 
 // ── Bookmark Card ────────────────────────────────────────────────
@@ -148,11 +163,11 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
   const [newFolder, setNewFolder] = useState({ name: '', color: FOLDER_COLORS[0], icon: FOLDER_ICONS[0] })
   const [editingBookmark, setEditingBookmark] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [folderFiles, setFolderFiles] = useState({}) // { fileId: { ...file, folderId } }
+  const [folderFiles, setFolderFiles] = useState({})
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef(null)
 
-  // Load folders & bookmarks from backend, files from localStorage
+  // Load folders & bookmarks from backend; files from user-scoped localStorage
   const load = useCallback(async () => {
     try {
       const [fd, bd] = await Promise.all([
@@ -166,7 +181,7 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
     } finally {
       setLoading(false)
     }
-    // Load files from localStorage
+    // Load files from user-scoped localStorage key
     setFolderFiles(getStoredFiles())
   }, [pdfName])
 
@@ -187,12 +202,9 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
         addedAt: Date.now(),
         lastPage: null,
         totalPages: null,
-        // Store the file object URL for opening
-        // Note: object URLs are session-only; we store the file as base64 for persistence
         fileKey: id,
       }
-      // Store file data in sessionStorage (for opening in same session)
-      // For a real app you'd use IndexedDB; this keeps things simple
+      // Store file data as base64 in sessionStorage for same-session access
       const reader = new FileReader()
       reader.onload = (e) => {
         sessionStorage.setItem(`folio_file_${id}`, e.target.result)
@@ -226,7 +238,6 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
       alert('File not available in this session. Please re-add the PDF.')
       return
     }
-    // Convert dataURL back to File object
     const res = await fetch(dataUrl)
     const blob = await res.blob()
     const file = new File([blob], fileEntry.name, { type: 'application/pdf' })
@@ -234,7 +245,7 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
     onClose()
   }, [setPdf, onClose])
 
-  // ── Drag-and-drop onto the panel ────────────────────────────
+  // ── Drag-and-drop ────────────────────────────────────────────
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
@@ -412,7 +423,9 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
               <button onClick={() => setActiveFolder(folder._id)}
                 style={{
                   ...fs.folderItem,
-                  ...(activeFolder === folder._id ? { ...fs.folderActive, borderColor: folder.color } : {})
+                  ...(activeFolder === folder._id
+                    ? { ...fs.folderActive, borderColor: folder.color }
+                    : {})
                 }}>
                 <span>{folder.icon}</span>
                 <span style={{ ...fs.folderName, color: activeFolder === folder._id ? folder.color : 'inherit' }}>
@@ -438,11 +451,16 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
         {/* Section header */}
         <div style={fs.contentHeader}>
           <p style={fs.sectionLabel}>
-            {isFileView ? 'ALL PDFs' : isBookmarkView ? 'BOOKMARKS' : folders.find(f => f._id === activeFolder)?.name?.toUpperCase()}
-            <span style={fs.countBadge}>{isBookmarkView ? visibleBookmarks.length : visibleFiles.length + visibleBookmarks.length}</span>
+            {isFileView
+              ? 'ALL PDFs'
+              : isBookmarkView
+                ? 'BOOKMARKS'
+                : folders.find(f => f._id === activeFolder)?.name?.toUpperCase()}
+            <span style={fs.countBadge}>
+              {isBookmarkView ? visibleBookmarks.length : visibleFiles.length + visibleBookmarks.length}
+            </span>
           </p>
 
-          {/* Add file button */}
           {!isBookmarkView && (
             <button onClick={() => fileInputRef.current?.click()} style={fs.addFileBtn} title="Add PDF files">
               + Add PDF
@@ -458,7 +476,6 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
           />
         </div>
 
-        {/* Drop hint when empty */}
         {loading ? (
           <div style={fs.loadingWrap}><div style={fs.spinner} /></div>
         ) : (
@@ -492,7 +509,7 @@ export default function FolderManager({ onClose, onGoToPage, pdfName, onOpenFile
               </>
             )}
 
-            {/* Bookmarks section (shown in bookmark view OR folder view) */}
+            {/* Bookmarks section */}
             {(isBookmarkView || isFolderView) && visibleBookmarks.length > 0 && (
               <>
                 {isFolderView && <p style={fs.subSectionLabel}>BOOKMARKS</p>}

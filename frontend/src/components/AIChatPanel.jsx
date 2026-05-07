@@ -1,3 +1,4 @@
+//AIChatPanel.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../lib/api.js'
 import { useStore } from '../lib/store.js'
