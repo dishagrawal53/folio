@@ -30,27 +30,6 @@ A full-stack web app that turns any PDF into an interactive study session. Drop 
 
 ---
 
-## Getting Started
-
-### Backend
-```bash
-cd backend
-pip install flask flask-cors pymongo pyjwt bcrypt python-dotenv openai spacy
-python -m spacy download en_core_web_sm
-# Create .env with MONGO_URI, JWT_SECRET, OPENAI_API_KEY
-python app.py
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-# Create .env with VITE_API_URL=http://localhost:5000
-npm run dev
-```
-
----
-
 ## Privacy
 
 PDF files are processed entirely in the browser using pdf.js — **no file data is ever sent to the server.** Only short text excerpts (for AI) and metadata (bookmarks, notes, progress) are stored in the cloud.
