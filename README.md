@@ -1,4 +1,4 @@
-# Folio — AI-Powered PDF Study Companion
+<img width="1217" height="591" alt="image" src="https://github.com/user-attachments/assets/7e579f29-ad73-4413-a16d-e2140d9ce06b" /># Folio — AI-Powered PDF Study Companion
 
 > **Live Demo:** [https://folio-1-ml39.onrender.com/](https://folio-1-ml39.onrender.com/)
 
@@ -61,7 +61,26 @@ frontend/src/
 ```
 
 ---
+---
+## Outputs and Results
+<img width="1217" height="591" alt="image" src="https://github.com/user-attachments/assets/90efbd7d-7dfe-4fb6-8251-b9e939307d11" />
+<p align="center">
+    Login ans Signup
+</p>
+<img width="1366" height="624" alt="image" src="https://github.com/user-attachments/assets/67ac520b-35f6-4046-9197-ad30f3ec643f" />
+<p align="center">
+    Home Page to Upload Files
+</p>
+<img width="1366" height="634" alt="image" src="https://github.com/user-attachments/assets/74e8aa04-993d-4be1-b452-edd828c67ffd" />
+<p align="center">
+    Page after login showing AI chat features
+</p>
+<img width="1360" height="644" alt="image" src="https://github.com/user-attachments/assets/a6df7149-6655-4465-8528-7d6118e5ea27" />
+<p align="center">
+    Features Like add notes, bookmarks and create folders and files 
+</p>
 
+---
 ## API Overview
 
 All endpoints require a `Bearer <token>` header except auth routes.
