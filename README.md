@@ -134,7 +134,3 @@ When you select text, the frontend calls `/api/nlp/keywords` to extract meaningf
 Login returns a 30-day JWT. Every backend request attaches it as `Authorization: Bearer <token>`. All MongoDB queries are automatically scoped to the logged-in `userId`. On the frontend, Zustand state is persisted to localStorage under a user-scoped key (`folio-storage-{userId}`) so switching accounts always loads a clean slate.
 
 ---
-
-## License
-
-MIT
